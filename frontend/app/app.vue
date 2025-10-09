@@ -1,190 +1,166 @@
 <template>
-  <div class="min-h-screen bg-gray-50 text-gray-800 py-10 px-6">
-    <div class="max-w-3xl mx-auto bg-white rounded-2xl shadow p-8">
-      <h1 class="text-3xl font-bold mb-6 text-center">
-        💰 Bitcoin DCA Calculator
-      </h1>
+  <div class="min-h-screen bg-gray-50 text-gray-800 font-sans">
+    <!-- Header -->
+    <header class="bg-white shadow-sm py-4">
+      <div class="max-w-5xl mx-auto px-4">
+        <h1 class="text-2xl font-bold text-gray-900">Bitcoin DCA Calculator</h1>
+      </div>
+    </header>
 
+    <!-- Main Content -->
+    <main class="max-w-5xl mx-auto px-4 py-8 space-y-8">
       <!-- Input Form -->
-      <form @submit.prevent="simulateDCA" class="grid gap-4 sm:grid-cols-2">
-        <div>
-          <label class="block font-semibold mb-1">Start Date</label>
-          <input
-            v-model="startDate"
-            type="date"
-            class="w-full border rounded px-3 py-2"
-          />
+      <section class="bg-white rounded-2xl shadow-sm p-6">
+        <h2 class="text-lg font-semibold mb-4">Investment Settings</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-600 mb-1"
+              >Amount (USDT)</label
+            >
+            <input
+              v-model="amount"
+              type="number"
+              class="w-full border rounded-lg px-3 py-2"
+            />
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-600 mb-1"
+              >Frequency</label
+            >
+            <select
+              v-model="frequency"
+              class="w-full border rounded-lg px-3 py-2"
+            >
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+              <option value="monthly">Monthly</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-600 mb-1"
+              >Period (Months)</label
+            >
+            <input
+              v-model="months"
+              type="number"
+              class="w-full border rounded-lg px-3 py-2"
+            />
+          </div>
         </div>
 
-        <div>
-          <label class="block font-semibold mb-1">End Date</label>
-          <input
-            v-model="endDate"
-            type="date"
-            class="w-full border rounded px-3 py-2"
-          />
-        </div>
-
-        <div>
-          <label class="block font-semibold mb-1">Frequency</label>
-          <select v-model="frequency" class="w-full border rounded px-3 py-2">
-            <option value="weekly">Weekly</option>
-            <option value="monthly">Monthly</option>
-          </select>
-        </div>
-
-        <div>
-          <label class="block font-semibold mb-1">Amount per DCA ($)</label>
-          <input
-            v-model.number="amount"
-            type="number"
-            min="1"
-            class="w-full border rounded px-3 py-2"
-          />
-        </div>
-
-        <div class="sm:col-span-2 text-center">
+        <div class="mt-6 flex justify-end">
           <button
-            type="submit"
-            :disabled="loading"
-            class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 transition"
+            @click="simulateDCA"
+            class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition"
           >
-            {{ loading ? "Simulating..." : "Simulate" }}
+            Simulate
           </button>
         </div>
-      </form>
+      </section>
 
-      <!-- Results Section -->
-      <div v-if="result" class="mt-10">
-        <h2 class="text-xl font-bold mb-3">📊 Simulation Result</h2>
-        <div class="grid sm:grid-cols-3 gap-4 text-center">
-          <div>
-            <p class="text-sm text-gray-500">Total Invested</p>
-            <p class="text-lg font-semibold">
-              ${{ result.totalInvested.toFixed(2) }}
-            </p>
-          </div>
-          <div>
-            <p class="text-sm text-gray-500">Average Buy Price</p>
-            <p class="text-lg font-semibold">
-              ${{ result.averageBuyPrice.toFixed(2) }}
-            </p>
-          </div>
-          <div>
-            <p class="text-sm text-gray-500">Current Value</p>
-            <p class="text-lg font-semibold">
-              ${{ result.currentValue.toFixed(2) }}
-            </p>
-          </div>
+      <!-- Chart Section -->
+      <section class="bg-white rounded-2xl shadow-sm p-6">
+        <h2 class="text-lg font-semibold mb-4">Simulation Result</h2>
+        <canvas id="dcaChart" height="100"></canvas>
+      </section>
+
+      <!-- Summary Cards -->
+      <section class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="bg-white rounded-2xl shadow-sm p-6 text-center">
+          <h3 class="text-sm text-gray-500">Total Invested</h3>
+          <p class="text-xl font-bold mt-1">
+            {{ totalInvested.toLocaleString() }} USDT
+          </p>
         </div>
 
-        <p
-          class="mt-4 text-center font-bold"
-          :class="result.roi >= 0 ? 'text-green-600' : 'text-red-600'"
-        >
-          ROI: {{ result.roi.toFixed(2) }}%
-        </p>
-
-        <!-- Chart -->
-        <div class="mt-8">
-          <LineChart :chartData="chartData" />
+        <div class="bg-white rounded-2xl shadow-sm p-6 text-center">
+          <h3 class="text-sm text-gray-500">Final Value</h3>
+          <p class="text-xl font-bold mt-1">
+            {{ finalValue.toLocaleString() }} USDT
+          </p>
         </div>
-      </div>
-    </div>
+
+        <div class="bg-white rounded-2xl shadow-sm p-6 text-center">
+          <h3 class="text-sm text-gray-500">ROI</h3>
+          <p
+            class="text-xl font-bold mt-1"
+            :class="{
+              'text-green-600': roi >= 0,
+              'text-red-600': roi < 0,
+            }"
+          >
+            {{ roi.toFixed(2) }}%
+          </p>
+        </div>
+      </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="text-center text-sm text-gray-500 py-6">
+      Powered by Binance API • Built with Nuxt & Tailwind
+    </footer>
   </div>
 </template>
 
-<script setup>
-import { ref } from "vue";
-import { Line } from "vue-chartjs";
-import {
-  Chart as ChartJS,
-  Title,
-  Tooltip,
-  Legend,
-  LineElement,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-} from "chart.js";
+<script setup lang="ts">
+import { onMounted, ref } from "vue";
+import Chart from "chart.js/auto";
 
-// Register Chart.js components
-ChartJS.register(
-  Title,
-  Tooltip,
-  Legend,
-  LineElement,
-  CategoryScale,
-  LinearScale,
-  PointElement
-);
-
-// Chart component
-const LineChart = {
-  props: ["chartData"],
-  components: { Line },
-  template: `
-    <div>
-      <Line
-        v-if="chartData"
-        :data="chartData"
-        :options="{
-          responsive: true,
-          plugins: { legend: { display: false } },
-          scales: { y: { beginAtZero: false } }
-        }"
-      />
-    </div>
-  `,
-};
-
-// State
-const startDate = ref(
-  new Date(new Date().setFullYear(new Date().getFullYear() - 1))
-    .toISOString()
-    .split("T")[0]
-);
-const endDate = ref(new Date().toISOString().split("T")[0]);
-const frequency = ref("weekly");
 const amount = ref(100);
-const loading = ref(false);
-const result = ref(null);
-const chartData = ref(null);
+const frequency = ref("weekly");
+const months = ref(12);
+const totalInvested = ref(0);
+const finalValue = ref(0);
+const roi = ref(0);
 
-// Simulate DCA
-const simulateDCA = async () => {
-  loading.value = true;
-  result.value = null;
+let chart: any = null;
 
-  try {
-    const url = `http://localhost:3000/api/simulate-dca?startDate=${startDate.value}&endDate=${endDate.value}&frequency=${frequency.value}&amount=${amount.value}`;
-    const res = await fetch(url);
-    const data = await res.json();
+async function simulateDCA() {
+  const response = await fetch("http://localhost:3000/api/simulate-dca", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      amount: parseFloat(amount.value),
+      frequency: frequency.value,
+      months: parseInt(months.value),
+    }),
+  });
+  const data = await response.json();
 
-    result.value = data;
+  totalInvested.value = data.totalInvested;
+  finalValue.value = data.finalValue;
+  roi.value =
+    ((data.finalValue - data.totalInvested) / data.totalInvested) * 100;
 
-    // Prepare chart data
-    chartData.value = {
-      labels: data.data.map((x) => x.date),
+  const ctx = document.getElementById("dcaChart") as HTMLCanvasElement;
+
+  if (chart) chart.destroy();
+
+  chart = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels: data.labels,
       datasets: [
         {
-          label: "BTC Price",
-          data: data.data.map((x) => x.price),
-          borderColor: "#3b82f6",
+          label: "Portfolio Value (USDT)",
+          data: data.portfolioValues,
+          borderColor: "#2563eb",
+          backgroundColor: "rgba(37,99,235,0.1)",
+          fill: true,
           tension: 0.3,
         },
       ],
-    };
-  } catch (err) {
-    console.error("Error fetching DCA data:", err);
-  } finally {
-    loading.value = false;
-  }
-};
-</script>
-
-<style>
-body {
-  font-family: "Inter", sans-serif;
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        x: { display: true },
+        y: { display: true },
+      },
+    },
+  });
 }
-</style>
+</script>
