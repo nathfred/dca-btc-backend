@@ -6,8 +6,8 @@ const {
   fetchDailyKlines,
   getLatestPrice,
   BINANCE_EARLIEST,
-} = require("/services/priceService");
-const { calculateDCA, generateBuyDates } = require("/utils/dcaCalculator");
+} = require("./services/priceService");
+const { calculateDCA, generateBuyDates } = require("./utils/dcaCalculator");
 
 const app = express();
 app.use(cors());
