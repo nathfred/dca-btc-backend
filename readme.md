@@ -41,7 +41,7 @@ A web application that simulates Dollar Cost Averaging (DCA) investment strategy
 1. **Clone the repository**
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/nathfred/dca-btc-backend.git
 cd btc-dca-backend
 ```
 
